@@ -1,11 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const app = express();
-const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const { ObjectID } = require('bson');
+const { SslCommerzPayment } = require('sslcommerz');
 require('dotenv').config();
+
+
+
+const app = express();
+const port = process.env.PORT || 5000;
+
+
+const store_id = process.env.STORE_ID
+const store_passwd = process.env.STORE_PASS
+const is_live = false //true for live, false for sandbox
+
+/* console.log(process.env.STORE_ID);
+console.log(process.env.STORE_PASS); */
 
 //middleware
 app.use(cors());
@@ -42,13 +54,23 @@ async function run(){
 
         app.post('/jwt', (req, res) =>{
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '7d' });
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '56861d' });
             res.send({token});
         })
 
         app.get('/services', async(req, res) =>{
-            const query = {}
-            const cursor = serviceCollection.find(query);
+            const search = req.query.search;
+            console.log(search);
+            const query = {};
+            //const query = {price: {$gt: 100, $lt: 300}}
+            //const query = {price: {$eq: 150}}
+            //const query = {price: {$lte: 250}}
+           7//const query = {price: {$ne: 150}}
+            //const query = {price: {$in: [80, 50,250]}}
+            //const query = {price: {$nin: [80, 50,250]}}
+            //const query = {$and: [{price: {$gt: 20}},{price: {$gt: 100}} ]}
+            const order = req.query.order === 'asc' ? 1 : -1;
+            const cursor = serviceCollection.find(query).sort({price: order});
             const services = await cursor.toArray();
             res.send(services);
         });
@@ -81,9 +103,15 @@ async function run(){
 
         app.post('/orders',verifyJWT, async(req, res) =>{
             const order = req.body;
-            const result = await orderCOllection.insertOne(order);
-            res.send(result);
-        });
+            
+            const orderService = await serviceCollection.findOne ({ _id : ObjectID (order.services)})
+           
+            console.log(orderService);
+            res.send(orderService)
+
+            
+        }) 
+    
 
         app.patch('/orders/:id',verifyJWT, async (req, res) => {
             const id = req.params.id;
@@ -102,6 +130,7 @@ async function run(){
             const id = req.params.id;
             const query =  {_id: ObjectID(id)};
             const result = await orderCOllection.deleteOne(query);
+            
             res.send(result);
         })
     }
@@ -115,4 +144,5 @@ app.get('/', (req , res) =>{
 
 app.listen(port, () =>{
     console.log(`Genius Car server running on ${port}`);
+
 })
