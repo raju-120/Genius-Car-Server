@@ -60,8 +60,15 @@ async function run(){
 
         app.get('/services', async(req, res) =>{
             const search = req.query.search;
-            console.log(search);
-            const query = {};
+            //console.log(search);
+            let query = {};
+            if(search.length){
+                query = {
+                    $text : {
+                        $search : search
+                    }
+                }
+            }
             //const query = {price: {$gt: 100, $lt: 300}}
             //const query = {price: {$eq: 150}}
             //const query = {price: {$lte: 250}}
